@@ -1,31 +1,21 @@
 local util_KeyValuesToTable = util.KeyValuesToTable
 local engine_ActiveGamemode = engine.ActiveGamemode
-local engine_GetGamemodes = engine.GetGamemodes
 local RunConsoleCommand = RunConsoleCommand
-local player_GetHumans = player.GetHumans
 local string_format = string.format
 local file_Exists = file.Exists
 local file_Read = file.Read
 local IsValid = IsValid
 local ipairs = ipairs
 
-local function getTitle( name )
-    for num, tbl in ipairs( engine_GetGamemodes() ) do
-        if (tbl.name == name) then
-            return tbl.title or name
-        end
-    end
-end
-
 concommand.Add("gm_reset", function( ply, cmd, args )
     local name = engine_ActiveGamemode()
-    local title = getTitle( name )
+    local arg = args[1]
 
     if IsValid( ply ) then
         if ply:IsListenServerHost() or ply:IsSuperAdmin() then
-            ply:ChatPrint( "[" .. title .. "] Settings restored by default!" )
+            ply:ChatPrint( "[gm_reset] Settings restored " .. ((arg == nil) and "by default" or ("to " .. arg)) .. "!" )
         else
-            ply:ChatPrint( "[" .. title .. "] You do not have enough access for this!" )
+            ply:ChatPrint( "[gm_reset] You do not have enough access for this!" )
             return
         end
     end
@@ -39,16 +29,15 @@ concommand.Add("gm_reset", function( ply, cmd, args )
                 local settings = gm.settings
                 if (settings) then
                     for num, data in ipairs( settings ) do
-                        RunConsoleCommand( data.name, args[1] or data.default )
-                    end
-
-                    for num, ply in ipairs( player_GetHumans() ) do
-                        if ply:IsFullyAuthenticated() then
-                            ply:SendLua( 'local a="spawnmenu_reload"if(concommand.GetTable()[a] ~= nil)then RunConsoleCommand(a)end')
+                        if (arg ~= nil) and (data.type == "Numeric") then
+                            RunConsoleCommand( data.name, arg )
+                            continue
                         end
+
+                        RunConsoleCommand( data.name, data.default )
                     end
 
-                    print( "[" .. title .. "] Settings restored to default!" )
+                    print( "[gm_reset] Settings restored " .. ((arg == nil) and "by default" or ("to " .. arg)) .. "!" )
                 end
 
                 return
@@ -56,5 +45,5 @@ concommand.Add("gm_reset", function( ply, cmd, args )
         end
     end
 
-    print( "[" .. title .. "] " .. name .. ".txt not exists!" )
+    print( "[gm_reset] gamemodes/" .. name .. "/" .. name .. ".txt not exists!" )
 end)
